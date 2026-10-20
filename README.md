@@ -23,9 +23,10 @@ sap-bdc-supply-chain-360/
 │   └── 06_ops_ext_dynamic_tables.sql  L2 gold — OPS_EXT demo enrichment (fulfillment, loss tree, equipment, cover, genealogy)
 ├── app/                 Native App package (manifest, setup.sql, spec, snowflake.yml)
 ├── service/app/         React (Vite) client + Express server + Dockerfile
-├── tools/               gen_ops_ext.py (seeds OPS_EXT) · presales kit + deck generators
-├── scripts/             build_and_push · migrate_data · deploy_native_app · create_org_listing
-└── docs/                ARCHITECTURE.md · INSTALL.md · DEMO_GUIDE.md · demo deck (.pptx)
+├── tools/               gen_l0_seed.py (synthetic L0) · gen_ops_ext.py (seeds OPS_EXT) · presales kit + deck generators
+├── scripts/             ci_deploy.py (GitHub Actions) · sf_conn · build_and_push · migrate_data · deploy_native_app · create_org_listing
+├── .github/workflows/   deploy-native-app.yml (any account) · validate.yml (PR checks)
+└── docs/                ARCHITECTURE.md · INSTALL.md · GITHUB_ACTIONS.md · DEMO_GUIDE.md · demo deck (.pptx)
 ```
 
 ## Architecture at a glance
@@ -42,7 +43,11 @@ Full detail (diagram + per-table content): [`docs/ARCHITECTURE.md`](docs/ARCHITE
   `python3 tools/gen_ops_ext.py`)
   `ACCOUNTADMIN`, then chat with `SAP_SC360_ANALYST_AGENT` in Snowflake
   Intelligence.
-- **Deploy the Native App:** `build_and_push.sh` → `migrate_data.py` →
+- **Deploy the Native App to any account (recommended):** add a GitHub Environment with
+  the account's key-pair secrets and run the **Deploy Native App** workflow — it builds
+  and pushes the image, seeds the data, registers a version/patch and installs the app.
+  See [`docs/GITHUB_ACTIONS.md`](docs/GITHUB_ACTIONS.md).
+- **Deploy the Native App manually:** `build_and_push.sh` → `migrate_data.py` →
   `deploy_native_app.py` → `create_org_listing.py`.
 
 Step-by-step runbook: [`docs/INSTALL.md`](docs/INSTALL.md).

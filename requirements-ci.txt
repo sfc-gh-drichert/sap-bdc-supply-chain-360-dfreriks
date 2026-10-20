@@ -1,0 +1,4 @@
+snowflake-connector-python[pandas]>=3.12
+cryptography>=42
+pandas>=2.1
+snowflake-cli>=3.10

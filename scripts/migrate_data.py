@@ -18,9 +18,11 @@ Usage:
   python migrate_data.py --source dfreriksdemo --target dfreriks_eu_demo --mode remote
 """
 import argparse
-import snowflake.connector
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
+import os as _os
+import sys as _sys
+
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from sf_conn import connect as _connect  # noqa: E402
 
 # target_table -> source fully-qualified object
 SOURCES = {
@@ -47,18 +49,9 @@ SOURCES = {
 PKG = "SUPPLY_CHAIN_360_PKG"
 
 
-def connect(conn_name: str, **kw):
-    import tomllib, os
-    with open(os.path.expanduser("~/.snowflake/connections.toml"), "rb") as f:
-        cfg = tomllib.load(f)[conn_name]
-    with open(cfg["private_key_path"], "rb") as f:
-        pk = serialization.load_pem_private_key(f.read(), password=None, backend=default_backend())
-    der = pk.private_bytes(serialization.Encoding.DER,
-                           serialization.PrivateFormat.PKCS8,
-                           serialization.NoEncryption())
-    return snowflake.connector.connect(
-        account=cfg["account"], user=cfg["user"], private_key=der,
-        role=cfg.get("role", "ACCOUNTADMIN"), paramstyle="qmark", **kw)
+def connect(conn_name, **kw):
+    """connections.toml name, or None to use SNOWFLAKE_* env vars (see sf_conn.py)."""
+    return _connect(conn_name, **kw, paramstyle="qmark")
 
 
 def ensure_package(cur):

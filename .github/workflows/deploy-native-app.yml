@@ -1,0 +1,123 @@
+# Deploy the Supply Chain 360 Native App into any Snowflake account.
+#
+# One GitHub Environment per target account, each with:
+#   secrets: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PRIVATE_KEY
+#            (optional) SNOWFLAKE_PRIVATE_KEY_PASSPHRASE
+#   vars:    (optional) SNOWFLAKE_ROLE  (default ACCOUNTADMIN)
+# See docs/GITHUB_ACTIONS.md for the one-time service-user setup.
+name: Deploy Native App
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub Environment holding the target account's credentials
+        required: true
+        type: string
+      data:
+        description: Rebuild + re-bundle the demo data (needed on first deploy)
+        type: boolean
+        default: true
+      install:
+        description: Create / upgrade SUPPLY_CHAIN_360_APP in the same account
+        type: boolean
+        default: true
+      publish:
+        description: Set the DEFAULT release directive to the new patch (upgrades listing consumers)
+        type: boolean
+        default: false
+      label:
+        description: Patch label
+        type: string
+        default: ""
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 60
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      SNOWFLAKE_ROLE: ${{ vars.SNOWFLAKE_ROLE || 'ACCOUNTADMIN' }}
+      SNOWFLAKE_WAREHOUSE: LOAD_WH
+      SC360_LABEL: ${{ inputs.label || format('{0} ({1})', github.sha, github.ref_name) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check credentials
+        run: |
+          for v in SNOWFLAKE_ACCOUNT SNOWFLAKE_USER SNOWFLAKE_PRIVATE_KEY; do
+            [ -n "${!v}" ] || { echo "::error::secret $v missing in environment '${{ inputs.environment }}'"; exit 1; }
+          done
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Install tooling
+        run: pip install -r requirements-ci.txt
+
+      - name: Write private key for Snowflake CLI
+        run: |
+          umask 077
+          printf '%s\n' "$SNOWFLAKE_PRIVATE_KEY" > "$RUNNER_TEMP/rsa_key.p8"
+          echo "SNOWFLAKE_PRIVATE_KEY_PATH=$RUNNER_TEMP/rsa_key.p8" >> "$GITHUB_ENV"
+
+      - name: Provider objects + image repository
+        id: provider
+        run: python scripts/ci_deploy.py provider
+
+      - name: Log in to the Snowflake image registry
+        run: |
+          snow spcs image-registry login -x \
+            --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER" --role "$SNOWFLAKE_ROLE" \
+            --authenticator SNOWFLAKE_JWT --private-key-file "$SNOWFLAKE_PRIVATE_KEY_PATH"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build + push container image
+        env:
+          REPO_URL: ${{ steps.provider.outputs.repository_url }}
+        run: |
+          docker buildx build --platform linux/amd64 \
+            -t "$REPO_URL/supply_chain_360:latest" \
+            -t "$REPO_URL/supply_chain_360:${GITHUB_SHA::12}" \
+            --push service/app
+
+      - name: Build + bundle demo data
+        if: inputs.data
+        run: python scripts/ci_deploy.py data
+
+      - name: Register version / add patch
+        id: release
+        run: python scripts/ci_deploy.py release ${{ inputs.publish && '--publish' || '' }}
+
+      - name: Install / upgrade application
+        id: install
+        if: inputs.install
+        run: python scripts/ci_deploy.py install
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Supply Chain 360 → \`${{ inputs.environment }}\`"
+            echo "- Image: \`${{ steps.provider.outputs.repository_url }}/supply_chain_360:latest\`"
+            echo "- Version: \`${{ steps.release.outputs.version }}\` patch \`${{ steps.release.outputs.patch }}\`"
+            echo "- Published to DEFAULT channel: \`${{ inputs.publish }}\`"
+            echo "- App URL: ${{ steps.install.outputs.app_url || 'n/a' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/rsa_key.p8"

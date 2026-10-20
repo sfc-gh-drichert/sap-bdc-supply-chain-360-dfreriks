@@ -12,27 +12,25 @@ Causal model (patterned on fulfillment loss trees):
   each late order carries its root cause and a late cost
   (penalty 0.5%/day of order value, capped at 5%, plus expedite freight).
 
-    python3 gen_ops_ext.py [connection_name]   (default dfreriksdemo)
+    python3 gen_ops_ext.py [connection_name]   (SNOWFLAKE_* env vars when omitted)
 """
+import os
 import random
 import sys
 from datetime import date, timedelta
 
 import pandas as pd
-import snowflake.connector
 from snowflake.connector.pandas_tools import write_pandas
 
-CONN = sys.argv[1] if len(sys.argv) > 1 else "dfreriksdemo"
-DB, SCHEMA = "SAP_SUPPLY_CHAIN", "OPS_EXT"
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+from sf_conn import connect  # noqa: E402
+
+CONN = sys.argv[1] if len(sys.argv) > 1 else None
+DB, SCHEMA = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN"), "OPS_EXT"
 rnd = random.Random(20250901)
 START, END = date(2025, 1, 1), date(2025, 9, 30)
 
-import tomllib, os
-_cfg = tomllib.load(open(os.path.expanduser("~/.snowflake/connections.toml"), "rb"))[CONN]
-_kw = {k: v for k, v in _cfg.items() if k in ("account", "user", "role", "warehouse", "authenticator")}
-if _cfg.get("private_key_path"):
-    _kw["private_key_file"] = _cfg["private_key_path"]
-con = snowflake.connector.connect(**_kw, database=DB)
+con = connect(CONN, database=DB, warehouse=os.environ.get("SNOWFLAKE_WAREHOUSE", "LOAD_WH"))
 cur = con.cursor()
 
 
