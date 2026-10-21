@@ -95,8 +95,11 @@ def money(x):
 
 
 rows = {}
-rows["PLANT.A_PLANT"] = [dict(PLANT=p, PLANT_NAME=n, CITY=c, COUNTRY=k, COMPANY_CODE="1000" if k == "US" else p,
-                              LATITUDE=la, LONGITUDE=lo) for p, n, c, k, la, lo in PLANTS]
+# Column order follows the SAP Plant data product (APP_REF.A_PLANT in sql/02 lists it).
+rows["PLANT.A_PLANT"] = [dict(PLANT=p, PLANT_NAME=n, FACTORY_CALENDAR="US" if k == "US" else k, COUNTRY_KEY=k,
+                              CITY=c, COMPANY_CODE="1000" if k == "US" else p, VALUATION_AREA=p,
+                              CREATED_DATE=date(2019, 1, 1))
+                         for p, n, c, k, _la, _lo in PLANTS]
 rows["WORK_CENTER.A_WORK_CENTER"] = [dict(WORK_CENTER=w, WORK_CENTER_DESC=d, PLANT=p, AVAILABLE_CAPACITY_HRS=h)
                                      for w, d, p, h in WORK_CENTERS]
 rows["WORK_CENTER.A_WORK_CENTER_CAPACITY"] = [

@@ -38,7 +38,7 @@ seed_src = seed_src.replace("from snowflake.connector.pandas_tools import write_
                    .replace("from sf_conn import connect  # noqa: E402", "")
 g = {"__file__": os.path.join(ROOT, "tools/gen_l0_seed.py")}
 exec(seed_src, g)
-columns = {f"{DB}.{k}": set(pd.DataFrame(v).columns) for k, v in g["rows"].items()}
+columns = {f"{DB}.{k}".upper(): [c.upper() for c in pd.DataFrame(v).columns] for k, v in g["rows"].items()}
 
 # OPS_EXT: run the generator's data logic against the seed (in-memory SQLite stands in for Snowflake).
 import sqlite3  # noqa: E402
@@ -69,7 +69,7 @@ h = {"q": q, "pd": pd, "date": date, "timedelta": timedelta, "rnd": random.Rando
 exec(body, h)
 ops_tables = re.search(r"tables = \{(.*?)\}", ops_src, re.S).group(1)
 for name, var in re.findall(r'"(A_[A-Z_]+)": (\w+)', ops_tables):
-    columns[f"{DB}.OPS_EXT.{name}"] = set(pd.DataFrame(h[var]).columns)
+    columns[f"{DB}.OPS_EXT.{name}"] = [c.upper() for c in pd.DataFrame(h[var]).columns]
 print(f"seed: {len(columns)} L0/OPS_EXT tables generated")
 
 created = set(columns)
@@ -87,6 +87,18 @@ for rel in order:
     for stmt in re.split(r";\s*\n", sql):
         m = CREATE.search(stmt)
         target = m.group(1).upper() if m else None
+        # Objects with an explicit column list: record it, and for `AS SELECT * FROM src`
+        # check it matches src's columns exactly (Snowflake: "Invalid column definition list").
+        decl = re.search(rf"({DB}\.[A-Z_0-9]+\.[A-Z_0-9]+)\s*\(\s*((?:[A-Z_0-9]+\s*,\s*)*[A-Z_0-9]+)\s*\)\s*"
+                         rf"(?:target_lag|comment|as\b)", stmt, re.I)
+        if target and decl and decl.group(1).upper() == target:
+            cols = [c.strip().upper() for c in decl.group(2).split(",")]
+            star = re.search(rf"\bas\s+select\s+\*\s+from\s+({DB}\.[A-Z_0-9]+\.[A-Z_0-9]+)", stmt, re.I)
+            if star and star.group(1).upper() in columns:
+                src_cols = columns[star.group(1).upper()]
+                if cols != src_cols:  # SELECT * maps by position: names and order must match
+                    errors.append(f"{rel}: {target} declares {cols} but {star.group(1).upper()} has {src_cols}")
+            columns[target] = cols
         for s, o in FQN.findall(stmt):
             ref = f"{DB}.{s}.{o}".upper()
             if ref != target and ref not in created:
