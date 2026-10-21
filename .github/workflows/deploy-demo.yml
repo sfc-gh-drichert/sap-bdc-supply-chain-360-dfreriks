@@ -21,19 +21,19 @@ on:
         required: true
         type: string
       data_platform:
-        description: "Part 1 - build SAP_SUPPLY_CHAIN_DF_V1 (seed data, dynamic tables, semantic view, agent)"
+        description: "PART 1 · Data platform — build SAP_SUPPLY_CHAIN_DF_V1 (seed data, dynamic tables, semantic view, Cortex agent)"
         type: boolean
         default: true
       native_app:
-        description: "Part 2 - build image, package and install the Native App"
+        description: "PART 2 · Native App — build the container image, package the app and install / upgrade it"
         type: boolean
         default: true
       publish:
-        description: "Part 2 - set the DEFAULT release directive (upgrades listing consumers)"
+        description: "Native App option: publish this patch to consumers (sets the DEFAULT release directive; leave off for testing)"
         type: boolean
         default: false
       label:
-        description: Native App patch label
+        description: "Native App option: patch label — free-text note shown in SHOW VERSIONS (default: commit SHA + branch)"
         type: string
         default: ""
 

@@ -96,7 +96,7 @@ before deploying to a given account.
 - `environment` — e.g. `us-demo`
 - `data_platform` — Part 1; leave on for the first deploy, turn off for app-only changes
 - `native_app` — Part 2; turn off to deploy only the database, semantic view and agent
-- `publish` — set the DEFAULT release directive (upgrades org-listing consumers
+- `publish` (Native App option) — set the DEFAULT release directive (upgrades org-listing consumers
   automatically; leave off unless you mean to release)
 
 From the CLI:
