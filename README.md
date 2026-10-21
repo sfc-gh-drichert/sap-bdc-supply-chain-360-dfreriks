@@ -112,33 +112,13 @@ the workflow.
 | Secret *(optional)* | `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` | Only for an encrypted key |
 | Variable *(optional)* | `SNOWFLAKE_ROLE` | Defaults to `ACCOUNTADMIN` |
 
-Or from the CLI. This is the recommended way to store the private key, because
-copy-pasting into the web form often drops line breaks or the `BEGIN`/`END` lines:
+To copy the private key correctly for the `SNOWFLAKE_PRIVATE_KEY` secret:
 
 ```bash
-R=sfc-gh-drichert/sap-bdc-supply-chain-360-dfreriks
-ENV=us-demo                                   # your GitHub Environment name, exactly
-gh secret set SNOWFLAKE_ACCOUNT     -R $R --env $ENV --body "myorg-myaccount"
-gh secret set SNOWFLAKE_USER        -R $R --env $ENV --body "SC360_CI"
-gh secret set SNOWFLAKE_PRIVATE_KEY -R $R --env $ENV < sc360_ci.p8   # reads the file as-is
+cat sc360_ci.p8 | pbcopy
 ```
 
-Before uploading, you can check that the private key matches the public key on the
-user. The two fingerprints must be identical:
-
-```bash
-# fingerprint of your local private key
-openssl rsa -in sc360_ci.p8 -pubout -outform DER 2>/dev/null | openssl dgst -sha256 -binary | openssl enc -base64
-```
-```sql
--- fingerprint Snowflake has for the user (value after "SHA256:")
-DESC USER SC360_CI;   -- property RSA_PUBLIC_KEY_FP
-```
-
-If you must use the web form, copy the file to the clipboard rather than
-selecting text in an editor: `pbcopy < sc360_ci.p8` (macOS), `xclip -sel clip < sc360_ci.p8`
-(Linux) or `Get-Content sc360_ci.p8 -Raw | Set-Clipboard` (Windows PowerShell). Then
-paste into **New secret**.
+Then paste it into **New secret**.
 
 Optional: add **required reviewers** on the environment so every deploy to that
 account waits for approval.
