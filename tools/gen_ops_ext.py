@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the OPS_EXT demo-enrichment schema for SAP Supply Chain 360.
 
-Every row is keyed to existing SAP master data in SAP_SUPPLY_CHAIN (plants, work
+Every row is keyed to existing SAP master data in SAP_SUPPLY_CHAIN_DF_V1 (plants, work
 centers, finished-goods materials, BOM components, suppliers, shipping points), so
 the new pages join cleanly to the BDC-sourced tables. Values are synthetic and
 deterministic (fixed seed) so US, EU and APAC builds are identical.
@@ -26,7 +26,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from sf_conn import connect  # noqa: E402
 
 CONN = sys.argv[1] if len(sys.argv) > 1 else None
-DB, SCHEMA = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN"), "OPS_EXT"
+DB, SCHEMA = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN_DF_V1"), "OPS_EXT"
 rnd = random.Random(20250901)
 START, END = date(2025, 1, 1), date(2025, 9, 30)
 
@@ -163,7 +163,7 @@ for p in plants:
         lost_units[(p["PLANT"], m)] = (equip_loss, mat_loss, perf)
 
 # ---------------------------------------------------------------- customer orders
-# Customers are the KG Customer nodes (SAP_SUPPLY_CHAIN.ONTOLOGY.KG_NODE), so
+# Customers are the KG Customer nodes (SAP_SUPPLY_CHAIN_DF_V1.ONTOLOGY.KG_NODE), so
 # orders link into the ontology by name.
 CUSTOMERS = ["TSMC", "Samsung Semiconductor", "Intel Fab", "GlobalFoundries", "Micron Technology", "SK Hynix",
              "Infineon Technologies", "Texas Instruments"]

@@ -281,7 +281,7 @@ router.get("/api/lineage", async (_req: Request, res: Response) => {
     const c = (await runQuery(
       `SELECT * FROM APP_DATA.LINEAGE_COUNTS`
     ))[0] as Record<string, unknown>;
-    res.json(buildLineage(c, "SUPPLY_CHAIN_360_APP (bundled APP_DATA, snapshot of SAP_SUPPLY_CHAIN)"));
+    res.json(buildLineage(c, "SUPPLY_CHAIN_360_APP (bundled APP_DATA, snapshot of SAP_SUPPLY_CHAIN_DF_V1)"));
   } catch (err) {
     console.error("GET /api/lineage error:", err);
     res.status(500).json({ error: String(err) });

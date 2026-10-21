@@ -238,7 +238,7 @@ def s03_architecture(prs):
     layers = [
         ("L0", "Bronze — SAP BDC Standard Data Products",
          "21 A_* objects across 16 domain schemas, shared zero-copy and treated as immutable"),
-        ("L2", "Gold — SAP_SUPPLY_CHAIN.ANALYTICS",
+        ("L2", "Gold — SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS",
          "9 dynamic tables joining and aggregating L0 into analytics-ready shapes"),
         ("SRV", "Serving — APP_REF",
          "17 stable app-facing views, decoupling the app from the physical objects"),
@@ -357,7 +357,7 @@ def s07_routes(prs):
         ("Both are internal organization listings, visible to all internal accounts. "
          "Find them in Snowsight under Data Products, then Marketplace, filtered to your organization.",
          12, False, GREY, 0)], spacing=1.12)
-    footer(s, "Agent: SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SC360_ANALYST_AGENT · Semantic view: SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360")
+    footer(s, "Agent: SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SC360_ANALYST_AGENT · Semantic view: SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360")
 
 
 def s08_regions(prs):

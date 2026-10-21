@@ -74,7 +74,7 @@ async function getSemanticView(): Promise<string> {
       "Semantic view not configured. Run CALL config.set_semantic_view('<db>.<schema>.<view>')."
     );
   }
-  cachedSemanticView = "SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360";
+  cachedSemanticView = "SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360";
   return cachedSemanticView;
 }
 

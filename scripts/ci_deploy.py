@@ -4,15 +4,15 @@ CI/CD deploy for the whole Supply Chain 360 demo — works against any Snowflake
 account. Every step is idempotent, so the same workflow handles first installs
 and upgrades.
 
-Part 1 — data platform (database SAP_SUPPLY_CHAIN):
+Part 1 — data platform (database SAP_SUPPLY_CHAIN_DF_V1):
   platform  seed L0 (synthetic SAP BDC products) -> L2 dynamic tables (sql/03)
             -> APP_REF views (sql/02) -> OPS_EXT seed + DTs (sql/06)
             -> semantic view (sql/04) -> Cortex agent (sql/05).
-            Skipped if a real (non-seed) SAP_SUPPLY_CHAIN already exists.
+            Skipped if a real (non-seed) SAP_SUPPLY_CHAIN_DF_V1 already exists.
 
 Part 2 — Native App (React dashboard on SPCS):
   provider  LOAD_WH + provider image repository; prints the registry URL
-  bundle    copy 18 tables from SAP_SUPPLY_CHAIN into the package SHARED_DATA
+  bundle    copy 18 tables from SAP_SUPPLY_CHAIN_DF_V1 into the package SHARED_DATA
   release   stage app/ artifacts, then REGISTER/ADD VERSION (first run) or ADD
             PATCH; optionally publish on the DEFAULT release channel
   install   CREATE APPLICATION or UPGRADE it, grant privileges, run
@@ -43,7 +43,7 @@ from migrate_data import PKG, SOURCES, ensure_package, grant  # noqa: E402
 
 APP = os.environ.get("SC360_APP_NAME", "SUPPLY_CHAIN_360_APP")
 VERSION = os.environ.get("SC360_VERSION", "V2").upper()
-SOURCE_DB = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN")
+SOURCE_DB = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN_DF_V1")
 LOAD_WH = "LOAD_WH"  # referenced by the dynamic tables in sql/03 and sql/06
 # Must match the image path in app/manifest.yml and app/service_spec.yml.
 IMAGE_DB, IMAGE_SCHEMA, IMAGE_REPO = "SC360_APP_PROVIDER", "IMAGES", "REPO"
@@ -92,7 +92,7 @@ def step_provider(cur):
 # ------------------------------------------------------------------ data
 def run_sql_file(con, rel):
     with open(os.path.join(ROOT, rel)) as f:
-        sql = f.read().replace("SAP_SUPPLY_CHAIN.", f"{SOURCE_DB}.")
+        sql = f.read().replace("SAP_SUPPLY_CHAIN_DF_V1.", f"{SOURCE_DB}.")
     con.execute_string(sql, remove_comments=True)
     log(f"ran {rel}")
 
@@ -128,7 +128,7 @@ def step_platform(con, cur):
 def step_bundle(cur):
     ensure_package(cur)
     for name, src in SOURCES.items():
-        src = src.replace("SAP_SUPPLY_CHAIN.", f"{SOURCE_DB}.", 1)
+        src = src.replace("SAP_SUPPLY_CHAIN_DF_V1.", f"{SOURCE_DB}.", 1)
         cur.execute(f"CREATE OR REPLACE TABLE {PKG}.SHARED_DATA.{name} AS SELECT * FROM {src}")
         grant(cur, name)
         n = rows(cur, f"SELECT COUNT(*) AS n FROM {PKG}.SHARED_DATA.{name}")[0]["n"]

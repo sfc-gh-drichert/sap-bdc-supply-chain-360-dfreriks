@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed the SAP BDC L0 (bronze) layer of SAP_SUPPLY_CHAIN with representative data.
+"""Seed the SAP BDC L0 (bronze) layer of SAP_SUPPLY_CHAIN_DF_V1 with representative data.
 
 Used when the target account does not have the SAP BDC Standard Data Products
 mounted (e.g. a fresh demo account deployed from GitHub Actions). Creates the
@@ -24,7 +24,7 @@ from snowflake.connector.pandas_tools import write_pandas
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from sf_conn import connect  # noqa: E402
 
-DB = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN")
+DB = os.environ.get("SC360_SOURCE_DB", "SAP_SUPPLY_CHAIN_DF_V1")
 rnd = random.Random(20250101)
 
 # ---------------------------------------------------------------- master data

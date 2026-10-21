@@ -16,7 +16,11 @@ jobs:
         with:
           python-version: "3.11"
       - name: Python syntax
-        run: python -m py_compile scripts/*.py tools/gen_l0_seed.py tools/gen_ops_ext.py
+        run: python -m py_compile scripts/*.py tools/gen_l0_seed.py tools/gen_ops_ext.py tools/check_flow.py
+      - name: End-to-end flow (seed -> SQL -> bundle -> app, offline)
+        run: |
+          pip install pandas snowflake-connector-python cryptography
+          python tools/check_flow.py
       - name: App YAML
         run: |
           pip install pyyaml

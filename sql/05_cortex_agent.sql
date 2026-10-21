@@ -5,7 +5,7 @@
 -- Prereqs: 04_semantic_view.sql + SNOWFLAKE.CORTEX_USER on the executing role.
 -- =====================================================================
 
-CREATE OR REPLACE AGENT SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SC360_ANALYST_AGENT
+CREATE OR REPLACE AGENT SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SC360_ANALYST_AGENT
 WITH PROFILE='{"display_name":"SAP Supply Chain 360 Analyst","color":"blue"}'
 COMMENT='Cortex Agent for SAP Supply Chain 360 natural language analytics. Answers questions about manufacturing KPIs, production orders, inventory, delivery performance, supplier quality, BOM costs, and project status using the SAP_SUPPLY_CHAIN_360 semantic view.'
 FROM SPECIFICATION $$
@@ -70,7 +70,7 @@ FROM SPECIFICATION $$
   "skills": [],
   "tool_resources": {
     "SAP_SC360_Analyst": {
-      "semantic_view": "SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360"
+      "semantic_view": "SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360"
     }
   }
 }

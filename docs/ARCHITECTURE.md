@@ -18,7 +18,7 @@ context preserved.
  └──────────────────────────────────────────────────────────────────────────┘
                                                                 │  (dynamic tables)
  ┌──────────────────────────────────────────────────────────────────────────┐
- │  L2  GOLD  — SAP_SUPPLY_CHAIN.ANALYTICS (joined / enriched / aggregated)   │
+ │  L2  GOLD  — SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS (joined/enriched/aggregated) │
  │      DT_MANUFACTURING_KPI · DT_PRODUCTION_ORDER_360 · DT_BOM_EXPLOSION     │
  │      DT_INVENTORY_OVERVIEW · DT_DELIVERY_PERFORMANCE                       │
  │      DT_WORK_CENTER_UTILIZATION · DT_PROJECT_STATUS                        │
@@ -26,7 +26,7 @@ context preserved.
  └──────────────────────────────────────────────────────────────────────────┘
                                                                 │  (views)
  ┌──────────────────────────────────────────────────────────────────────────┐
- │  SERVING — SAP_SUPPLY_CHAIN.APP_REF (stable app-facing views)             │
+ │  SERVING — SAP_SUPPLY_CHAIN_DF_V1.APP_REF (stable app-facing views)       │
  │      1:1 views over the L2 dynamic tables + A_PLANT, A_SUPPLY_CHAIN_NODES  │
  └──────────────────────────────────────────────────────────────────────────┘
                                                                 │

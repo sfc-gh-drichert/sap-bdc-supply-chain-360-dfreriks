@@ -11,7 +11,7 @@ export const LINEAGE_COUNT_COLUMNS = [
 ] as const;
 
 export function buildLineage(c: Record<string, unknown>, database: string) {
-  const L0 = "SAP_SUPPLY_CHAIN";
+  const L0 = "SAP_SUPPLY_CHAIN_DF_V1";
   const p = (sapSystem: string, dataProduct: string, l0Object: string, l1Object: string, rows: unknown, usage: string) =>
     ({ sapSystem, dataProduct, l0Object: `${L0}.${l0Object}`, l1Object, rows, usage });
   return {
@@ -25,7 +25,7 @@ export function buildLineage(c: Record<string, unknown>, database: string) {
     summary:
       "Supply chain master and transactional data is modelled on the SAP BDC Standard Data Products for S/4HANA " +
       "(Plant, Work Center, Bill of Material, Production Order Confirmation, Project, Shipping Point, Storage Location, " +
-      "Change Master/Record, …). Each product lands as an A_* object in its own domain schema of SAP_SUPPLY_CHAIN (L0), " +
+      "Change Master/Record, …). Each product lands as an A_* object in its own domain schema of SAP_SUPPLY_CHAIN_DF_V1 (L0), " +
       "is curated into dynamic tables and a semantic view in ANALYTICS (L2), and is served to this app through APP_REF " +
       "views (L1) and to the SAP Supply Chain 360 Analyst agent. A supply chain ontology / knowledge graph sits on top.",
     products: [
@@ -70,7 +70,7 @@ export function buildLineage(c: Record<string, unknown>, database: string) {
       { name: "AI + Application", tone: "ai", objects: ["ANALYTICS.SAP_SC360_ANALYST_AGENT (Cortex Agent)", "ONTOLOGY schema — knowledge graph (see Supply Chain Ontology page)", "SAP BDC Supply Chain 360 (React)"] },
     ],
     note:
-      "Honesty note: the L0 objects are modelled BDC-shaped native tables in SAP_SUPPLY_CHAIN that follow the SAP BDC " +
+      "Honesty note: the L0 objects are modelled BDC-shaped native tables in SAP_SUPPLY_CHAIN_DF_V1 that follow the SAP BDC " +
       "Standard Data Product structures — they are not mounted BDC zero-copy shares in this account. The MANUFACTURING_CODES " +
       "objects (KPIs, stock, supplier quality, flows, nodes) have no BDC standard product and are demo enrichment. There is no " +
       "separate SAP_BDC_L1 passthrough layer; APP_REF serving views play the L1 role.",

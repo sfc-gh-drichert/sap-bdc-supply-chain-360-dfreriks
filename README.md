@@ -45,7 +45,7 @@ Full detail (diagram + per-table content): [`docs/ARCHITECTURE.md`](docs/ARCHITE
   Intelligence.
 - **Deploy the whole demo to any account (recommended):** add a GitHub Environment with
   the account's key-pair secrets and run the **Deploy SC360 demo (data platform + Native App)**
-  workflow. Part 1 builds `SAP_SUPPLY_CHAIN` (seeded data, dynamic tables, semantic view,
+  workflow. Part 1 builds `SAP_SUPPLY_CHAIN_DF_V1` (seeded data, dynamic tables, semantic view,
   Cortex agent); Part 2 builds, packages and installs the Native App.
   See [`docs/GITHUB_ACTIONS.md`](docs/GITHUB_ACTIONS.md).
 - **Deploy the Native App manually:** `build_and_push.sh` → `migrate_data.py` →

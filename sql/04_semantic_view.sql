@@ -4,22 +4,22 @@
 -- SAP_SC360_ANALYST_AGENT Cortex Agent (see 05_cortex_agent.sql).
 -- =====================================================================
 
-create or replace semantic view SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360
+create or replace semantic view SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360
 	tables (
-		MANUFACTURING_KPI as SAP_SUPPLY_CHAIN.ANALYTICS.DT_MANUFACTURING_KPI comment='Monthly manufacturing performance metrics by plant including OEE, throughput, scrap rate, on-time delivery, and inventory turnover.',
-		PRODUCTION_ORDER as SAP_SUPPLY_CHAIN.ANALYTICS.DT_PRODUCTION_ORDER_360 primary key (PRODUCTION_ORDER) comment='Production orders with planning, confirmation, yield, and scrap data. Includes cycle time and order status tracking across plants and work centers.',
-		BOM_EXPLOSION as SAP_SUPPLY_CHAIN.ANALYTICS.DT_BOM_EXPLOSION comment='Multi-level bill of materials showing parent-component relationships, quantities, units of measure, and costs for all manufactured products.',
-		WORK_CENTER_UTILIZATION as SAP_SUPPLY_CHAIN.ANALYTICS.DT_WORK_CENTER_UTILIZATION comment='Monthly work center capacity and utilization data. Tracks available vs used hours to identify production bottlenecks across plants.',
-		INVENTORY_OVERVIEW as SAP_SUPPLY_CHAIN.ANALYTICS.DT_INVENTORY_OVERVIEW primary key (MATERIAL) unique (MATERIAL,PLANT) comment='Current stock positions by material, plant, and storage location. Includes days of inventory, turnover rates, and obsolescence flags.',
-		DELIVERY_PERFORMANCE as SAP_SUPPLY_CHAIN.ANALYTICS.DT_DELIVERY_PERFORMANCE primary key (DELIVERY_ID) comment='Outbound delivery tracking with on-time performance, delay analysis, and shipping point metrics for logistics monitoring.',
-		SUPPLIER_QUALITY as SAP_SUPPLY_CHAIN.ANALYTICS.DT_SUPPLIER_QUALITY comment='Quarterly supplier performance scoring including defect rates, on-time delivery percentages, and composite quality scores per material.',
-		PROJECT_STATUS as SAP_SUPPLY_CHAIN.ANALYTICS.DT_PROJECT_STATUS comment='Capital and operational project tracking with budget variance, completion percentage, and WBS element breakdown.',
-		SUPPLY_CHAIN_GEO as SAP_SUPPLY_CHAIN.ANALYTICS.DT_SUPPLY_CHAIN_GEO comment='Geographic supply chain flow data showing material movements between suppliers, plants, and distribution centers with coordinates for map visualization.',
-    ORDER_FULFILLMENT as SAP_SUPPLY_CHAIN.ANALYTICS.DT_ORDER_FULFILLMENT primary key (SALES_ORDER) comment='Customer sales order lines with on-time-in-full (OTIF), delay days, root cause of lateness and late cost (penalty plus expedite). Demo enrichment keyed to SAP plants and materials.',
-    OPERATING_RATE as SAP_SUPPLY_CHAIN.ANALYTICS.DT_OPERATING_RATE comment='Monthly operating-rate loss tree per plant in system units: nameplate split into planned downtime, equipment outage loss, component shortage loss, performance loss and produced units. Demo enrichment.',
-    EQUIPMENT_HEALTH as SAP_SUPPLY_CHAIN.ANALYTICS.DT_EQUIPMENT_HEALTH comment='Daily health readings per production tool (vibration, temperature, 48-hour failure probability, anomaly flag). Demo enrichment keyed to SAP work centers.',
-    EQUIPMENT_OUTAGE as SAP_SUPPLY_CHAIN.ANALYTICS.DT_EQUIPMENT_OUTAGE primary key (OUTAGE_ID) comment='Equipment outage events with downtime hours, root cause and repair cost. Demo enrichment.',
-    COMPONENT_COVER as SAP_SUPPLY_CHAIN.ANALYTICS.DT_COMPONENT_COVER comment='Component days of cover versus supplier lead time per plant, with open PO quantity and status (Critical/Watch/OK). Demo enrichment keyed to the SAP BOM.'
+		MANUFACTURING_KPI as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_MANUFACTURING_KPI comment='Monthly manufacturing performance metrics by plant including OEE, throughput, scrap rate, on-time delivery, and inventory turnover.',
+		PRODUCTION_ORDER as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_PRODUCTION_ORDER_360 primary key (PRODUCTION_ORDER) comment='Production orders with planning, confirmation, yield, and scrap data. Includes cycle time and order status tracking across plants and work centers.',
+		BOM_EXPLOSION as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_BOM_EXPLOSION comment='Multi-level bill of materials showing parent-component relationships, quantities, units of measure, and costs for all manufactured products.',
+		WORK_CENTER_UTILIZATION as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_WORK_CENTER_UTILIZATION comment='Monthly work center capacity and utilization data. Tracks available vs used hours to identify production bottlenecks across plants.',
+		INVENTORY_OVERVIEW as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_INVENTORY_OVERVIEW primary key (MATERIAL) unique (MATERIAL,PLANT) comment='Current stock positions by material, plant, and storage location. Includes days of inventory, turnover rates, and obsolescence flags.',
+		DELIVERY_PERFORMANCE as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_DELIVERY_PERFORMANCE primary key (DELIVERY_ID) comment='Outbound delivery tracking with on-time performance, delay analysis, and shipping point metrics for logistics monitoring.',
+		SUPPLIER_QUALITY as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_SUPPLIER_QUALITY comment='Quarterly supplier performance scoring including defect rates, on-time delivery percentages, and composite quality scores per material.',
+		PROJECT_STATUS as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_PROJECT_STATUS comment='Capital and operational project tracking with budget variance, completion percentage, and WBS element breakdown.',
+		SUPPLY_CHAIN_GEO as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_SUPPLY_CHAIN_GEO comment='Geographic supply chain flow data showing material movements between suppliers, plants, and distribution centers with coordinates for map visualization.',
+    ORDER_FULFILLMENT as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_ORDER_FULFILLMENT primary key (SALES_ORDER) comment='Customer sales order lines with on-time-in-full (OTIF), delay days, root cause of lateness and late cost (penalty plus expedite). Demo enrichment keyed to SAP plants and materials.',
+    OPERATING_RATE as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_OPERATING_RATE comment='Monthly operating-rate loss tree per plant in system units: nameplate split into planned downtime, equipment outage loss, component shortage loss, performance loss and produced units. Demo enrichment.',
+    EQUIPMENT_HEALTH as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_EQUIPMENT_HEALTH comment='Daily health readings per production tool (vibration, temperature, 48-hour failure probability, anomaly flag). Demo enrichment keyed to SAP work centers.',
+    EQUIPMENT_OUTAGE as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_EQUIPMENT_OUTAGE primary key (OUTAGE_ID) comment='Equipment outage events with downtime hours, root cause and repair cost. Demo enrichment.',
+    COMPONENT_COVER as SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_COMPONENT_COVER comment='Component days of cover versus supplier lead time per plant, with open PO quantity and status (Critical/Watch/OK). Demo enrichment keyed to the SAP BOM.'
   )
 	relationships (
 		DT_PRODUCTION_ORDER_360_TO_DT_INVENTORY_OVERVIEW as PRODUCTION_ORDER(MATERIAL,PLANT) references INVENTORY_OVERVIEW(MATERIAL,PLANT),
@@ -200,71 +200,71 @@ QUESTION 'What is driving late customer orders and what does it cost?'
 VERIFIED_AT 1791504000
 VERIFIED_BY '(source=ops_ext)'
 ONBOARDING_QUESTION true
-SQL 'SELECT LATE_CAUSE_LABEL, COUNT(*) AS ORDERS, SUM(LATE_COST_USD) AS LATE_COST_USD FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_ORDER_FULFILLMENT WHERE NOT ON_TIME GROUP BY LATE_CAUSE_LABEL ORDER BY LATE_COST_USD DESC'),
+SQL 'SELECT LATE_CAUSE_LABEL, COUNT(*) AS ORDERS, SUM(LATE_COST_USD) AS LATE_COST_USD FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_ORDER_FULFILLMENT WHERE NOT ON_TIME GROUP BY LATE_CAUSE_LABEL ORDER BY LATE_COST_USD DESC'),
     TOOLS_AT_RISK AS (
 QUESTION 'Which tools have the highest failure risk right now?'
 VERIFIED_AT 1791504000
 VERIFIED_BY '(source=ops_ext)'
 ONBOARDING_QUESTION true
-SQL 'SELECT EQUIPMENT_NAME, PLANT_NAME, FAILURE_PROB_48H, ANOMALY_FLAG FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_EQUIPMENT_HEALTH QUALIFY ROW_NUMBER() OVER (PARTITION BY EQUIPMENT_ID ORDER BY READING_DATE DESC) = 1 ORDER BY FAILURE_PROB_48H DESC LIMIT 10'),
+SQL 'SELECT EQUIPMENT_NAME, PLANT_NAME, FAILURE_PROB_48H, ANOMALY_FLAG FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_EQUIPMENT_HEALTH QUALIFY ROW_NUMBER() OVER (PARTITION BY EQUIPMENT_ID ORDER BY READING_DATE DESC) = 1 ORDER BY FAILURE_PROB_48H DESC LIMIT 10'),
     CRITICAL_COMPONENTS AS (
 QUESTION 'Which components are below supplier lead time on cover?'
 VERIFIED_AT 1791504000
 VERIFIED_BY '(source=ops_ext)'
 ONBOARDING_QUESTION false
-SQL 'SELECT PLANT_NAME, COMPONENT_DESC, SUPPLIER_NAME, DAYS_OF_COVER, SUPPLIER_LEAD_TIME_DAYS FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_COMPONENT_COVER WHERE DAYS_OF_COVER < SUPPLIER_LEAD_TIME_DAYS ORDER BY DAYS_OF_COVER'),
+SQL 'SELECT PLANT_NAME, COMPONENT_DESC, SUPPLIER_NAME, DAYS_OF_COVER, SUPPLIER_LEAD_TIME_DAYS FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_COMPONENT_COVER WHERE DAYS_OF_COVER < SUPPLIER_LEAD_TIME_DAYS ORDER BY DAYS_OF_COVER'),
     OPERATING_RATE_BY_PLANT AS (
 QUESTION 'What is the operating rate and binding constraint by plant?'
 VERIFIED_AT 1791504000
 VERIFIED_BY '(source=ops_ext)'
 ONBOARDING_QUESTION false
-SQL 'SELECT PLANT_NAME, ROUND(100 * SUM(PRODUCED_UNITS) / SUM(NAMEPLATE_UNITS), 1) AS OPERATING_RATE_PCT, SUM(EQUIPMENT_LOSS_UNITS) AS EQUIPMENT_LOSS, SUM(MATERIAL_SHORTAGE_UNITS) AS COMPONENT_LOSS FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_OPERATING_RATE GROUP BY PLANT_NAME ORDER BY OPERATING_RATE_PCT'),
+SQL 'SELECT PLANT_NAME, ROUND(100 * SUM(PRODUCED_UNITS) / SUM(NAMEPLATE_UNITS), 1) AS OPERATING_RATE_PCT, SUM(EQUIPMENT_LOSS_UNITS) AS EQUIPMENT_LOSS, SUM(MATERIAL_SHORTAGE_UNITS) AS COMPONENT_LOSS FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_OPERATING_RATE GROUP BY PLANT_NAME ORDER BY OPERATING_RATE_PCT'),
 		MONTHLY_OEE_BY_PLANT AS ( 
 QUESTION 'What is the monthly OEE trend by plant?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT PLANT_NAME, PERIOD_DATE, OEE_PCT FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_MANUFACTURING_KPI ORDER BY PLANT_NAME, PERIOD_DATE'),
+SQL 'SELECT PLANT_NAME, PERIOD_DATE, OEE_PCT FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_MANUFACTURING_KPI ORDER BY PLANT_NAME, PERIOD_DATE'),
 		PRODUCTION_YIELD_BY_PRODUCT AS ( 
 QUESTION 'What is the production yield rate by product?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT MATERIAL_DESC, ROUND(100.0 * SUM(YIELD_QTY) / NULLIF(SUM(PLANNED_QTY), 0), 1) AS YIELD_PCT FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_PRODUCTION_ORDER_360 GROUP BY MATERIAL_DESC ORDER BY YIELD_PCT DESC'),
+SQL 'SELECT MATERIAL_DESC, ROUND(100.0 * SUM(YIELD_QTY) / NULLIF(SUM(PLANNED_QTY), 0), 1) AS YIELD_PCT FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_PRODUCTION_ORDER_360 GROUP BY MATERIAL_DESC ORDER BY YIELD_PCT DESC'),
 		WORK_CENTER_BOTTLENECKS AS ( 
 QUESTION 'Which work centers have the highest utilization and may be bottlenecks?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT WORK_CENTER_DESC, PLANT_NAME, ROUND(AVG(UTILIZATION_PCT), 1) AS AVG_UTILIZATION FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_WORK_CENTER_UTILIZATION GROUP BY WORK_CENTER_DESC, PLANT_NAME HAVING AVG(UTILIZATION_PCT) > 85 ORDER BY AVG_UTILIZATION DESC'),
+SQL 'SELECT WORK_CENTER_DESC, PLANT_NAME, ROUND(AVG(UTILIZATION_PCT), 1) AS AVG_UTILIZATION FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_WORK_CENTER_UTILIZATION GROUP BY WORK_CENTER_DESC, PLANT_NAME HAVING AVG(UTILIZATION_PCT) > 85 ORDER BY AVG_UTILIZATION DESC'),
 		ON_TIME_DELIVERY_RATE AS ( 
 QUESTION 'What is the overall on-time delivery rate?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT ROUND(100.0 * SUM(CASE WHEN ON_TIME_FLAG = ''Y'' THEN 1 ELSE 0 END) / COUNT(*), 1) AS OTD_PCT, COUNT(*) AS TOTAL_DELIVERIES FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_DELIVERY_PERFORMANCE'),
+SQL 'SELECT ROUND(100.0 * SUM(CASE WHEN ON_TIME_FLAG = ''Y'' THEN 1 ELSE 0 END) / COUNT(*), 1) AS OTD_PCT, COUNT(*) AS TOTAL_DELIVERIES FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_DELIVERY_PERFORMANCE'),
 		INVENTORY_OBSOLESCENCE AS ( 
 QUESTION 'What is the breakdown of inventory items and value by obsolete status?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT OBSOLETE_FLAG, COUNT(*) AS ITEMS, SUM(STOCK_VALUE) AS TOTAL_VALUE FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_INVENTORY_OVERVIEW GROUP BY OBSOLETE_FLAG'),
+SQL 'SELECT OBSOLETE_FLAG, COUNT(*) AS ITEMS, SUM(STOCK_VALUE) AS TOTAL_VALUE FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_INVENTORY_OVERVIEW GROUP BY OBSOLETE_FLAG'),
 		TOP_BOM_COST_COMPONENTS AS ( 
 QUESTION 'What are the most expensive components across all BOMs?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT COMPONENT_DESC, SUM(COMPONENT_COST) AS TOTAL_COST FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_BOM_EXPLOSION GROUP BY COMPONENT_DESC ORDER BY TOTAL_COST DESC LIMIT 10'),
+SQL 'SELECT COMPONENT_DESC, SUM(COMPONENT_COST) AS TOTAL_COST FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_BOM_EXPLOSION GROUP BY COMPONENT_DESC ORDER BY TOTAL_COST DESC LIMIT 10'),
 		SUPPLIER_QUALITY_RANKING AS ( 
 QUESTION 'How do suppliers rank by quality score?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT SUPPLIER_NAME, ROUND(AVG(QUALITY_SCORE), 1) AS AVG_QUALITY, ROUND(AVG(DEFECT_RATE_PCT), 2) AS AVG_DEFECT_RATE, ROUND(AVG(ON_TIME_DELIVERY_PCT), 1) AS AVG_OTD FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_SUPPLIER_QUALITY GROUP BY SUPPLIER_NAME ORDER BY AVG_QUALITY DESC'),
+SQL 'SELECT SUPPLIER_NAME, ROUND(AVG(QUALITY_SCORE), 1) AS AVG_QUALITY, ROUND(AVG(DEFECT_RATE_PCT), 2) AS AVG_DEFECT_RATE, ROUND(AVG(ON_TIME_DELIVERY_PCT), 1) AS AVG_OTD FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_SUPPLIER_QUALITY GROUP BY SUPPLIER_NAME ORDER BY AVG_QUALITY DESC'),
 		PROJECTS_OVER_BUDGET AS ( 
 QUESTION 'Which projects are over budget?' 
 VERIFIED_AT 1774984280
 VERIFIED_BY '(source=existing_sv)'
 ONBOARDING_QUESTION false
-SQL 'SELECT DISTINCT PROJECT_NAME, PROJECT_STATUS, PLANNED_COST, ACTUAL_COST, BUDGET_VARIANCE_PCT, COMPLETION_PCT FROM SAP_SUPPLY_CHAIN.ANALYTICS.DT_PROJECT_STATUS WHERE BUDGET_VARIANCE_PCT > 0 ORDER BY BUDGET_VARIANCE_PCT DESC')
+SQL 'SELECT DISTINCT PROJECT_NAME, PROJECT_STATUS, PLANNED_COST, ACTUAL_COST, BUDGET_VARIANCE_PCT, COMPLETION_PCT FROM SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.DT_PROJECT_STATUS WHERE BUDGET_VARIANCE_PCT > 0 ORDER BY BUDGET_VARIANCE_PCT DESC')
 	);

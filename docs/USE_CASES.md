@@ -3,7 +3,7 @@
 > Plan-make-deliver visibility across production, inventory, logistics, suppliers and projects, with an ontology layer.
 
 - **App:** supply_chain_dashboard_react (React, server 3001 / client 5174); legacy Streamlit supply_chain_dashboard (8504)
-- **Semantic view:** `SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360`
+- **Semantic view:** `SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360`
 - **Analytics tables:** DT_MANUFACTURING_KPI, DT_PRODUCTION_ORDER_360, DT_BOM_EXPLOSION, DT_WORK_CENTER_UTILIZATION, DT_INVENTORY_OVERVIEW, DT_DELIVERY_PERFORMANCE, DT_SUPPLIER_QUALITY, DT_PROJECT_STATUS, DT_SUPPLY_CHAIN_GEO
 - **Catalog audited:** 2026-09-28. Each use case maps to an existing app page and to fields in the semantic view or API.
 

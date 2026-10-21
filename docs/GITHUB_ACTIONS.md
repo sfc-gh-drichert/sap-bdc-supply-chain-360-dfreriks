@@ -9,7 +9,7 @@ account's credentials; you pick the environment when you run the workflow.
 
 ### Part 1 — Data platform (input `data_platform`)
 
-`ci_deploy.py platform` builds database `SAP_SUPPLY_CHAIN`, in this order:
+`ci_deploy.py platform` builds database `SAP_SUPPLY_CHAIN_DF_V1`, in this order:
 
 | # | Source | Creates |
 |---|--------|---------|
@@ -28,14 +28,14 @@ Also creates warehouse `LOAD_WH`, which the dynamic tables use.
 |------|---------|
 | Image repository | `SC360_APP_PROVIDER.IMAGES.REPO` |
 | Build + push | React/Express container `supply_chain_360:latest` (+ `:<sha>`) |
-| Bundle | 18 tables copied from `SAP_SUPPLY_CHAIN` into `SUPPLY_CHAIN_360_PKG.SHARED_DATA` (the app is self-contained and has its own in-app semantic view) |
+| Bundle | 18 tables copied from `SAP_SUPPLY_CHAIN_DF_V1` into `SUPPLY_CHAIN_360_PKG.SHARED_DATA` (the app is self-contained and has its own in-app semantic view) |
 | Version / patch | First run registers version `V2`; later runs add a patch. Input `publish` also sets the DEFAULT release directive |
 | Install | `SUPPLY_CHAIN_360_APP` created or upgraded, privileges + `CORTEX_USER` granted, service started, URL printed in the job summary |
 
-Part 2 bundles from `SAP_SUPPLY_CHAIN`, so on a fresh account run Part 1 first, or
+Part 2 bundles from `SAP_SUPPLY_CHAIN_DF_V1`, so on a fresh account run Part 1 first, or
 in the same run (the default).
 
-**Existing SAP BDC data is never overwritten.** If `SAP_SUPPLY_CHAIN` already
+**Existing SAP BDC data is never overwritten.** If `SAP_SUPPLY_CHAIN_DF_V1` already
 exists and was *not* created by the seed (no `SC360_SEED` comment), Part 1 is
 skipped entirely, and Part 2 bundles that data as-is. Its L2 tables must already
 exist in that case (`docs/INSTALL.md`, section A).
@@ -137,5 +137,5 @@ python scripts/ci_deploy.py install --connection my_conn
 DROP APPLICATION IF EXISTS SUPPLY_CHAIN_360_APP CASCADE;  -- also drops its pool, warehouse, service
 DROP APPLICATION PACKAGE IF EXISTS SUPPLY_CHAIN_360_PKG;
 DROP DATABASE IF EXISTS SC360_APP_PROVIDER;
-DROP DATABASE IF EXISTS SAP_SUPPLY_CHAIN;  -- only if it was created by the seed
+DROP DATABASE IF EXISTS SAP_SUPPLY_CHAIN_DF_V1;  -- only if it was created by the seed
 ```

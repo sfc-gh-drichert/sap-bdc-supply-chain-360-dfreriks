@@ -16,7 +16,7 @@ consumer account.
 ## Prerequisites
 
 - Snowflake account with `ACCOUNTADMIN` (or equivalent) role
-- The SAP BDC **Standard Data Products** mounted in `SAP_SUPPLY_CHAIN`
+- The SAP BDC **Standard Data Products** mounted in `SAP_SUPPLY_CHAIN_DF_V1`
   (see [`sql/01_l0_sources.md`](../sql/01_l0_sources.md))
 - For the Native App: Docker + `snow` CLI + a Snowflake **image repository**
   (e.g. `SC360_APP_PROVIDER.IMAGES.REPO`)
@@ -45,7 +45,7 @@ Verify + chat with `SAP_SC360_ANALYST_AGENT` in Snowflake Intelligence:
 
 ```sql
 SELECT * FROM SEMANTIC_VIEW(
-  SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360
+  SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360
   METRICS MANUFACTURING_KPI.OEE_PCT
   DIMENSIONS MANUFACTURING_KPI.PLANT
 );

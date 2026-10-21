@@ -1,6 +1,6 @@
 # Deploy the complete SAP BDC Supply Chain 360 demo into any Snowflake account.
 #
-#   Part 1 - Data platform   database SAP_SUPPLY_CHAIN: seeded SAP L0 data, L2 dynamic
+#   Part 1 - Data platform   database SAP_SUPPLY_CHAIN_DF_V1: seeded SAP L0 data, L2 dynamic
 #                            tables, APP_REF views, OPS_EXT enrichment, semantic view
 #                            SAP_SUPPLY_CHAIN_360 and Cortex agent SAP_SC360_ANALYST_AGENT
 #   Part 2 - Native App      React dashboard on SPCS: image, application package
@@ -21,7 +21,7 @@ on:
         required: true
         type: string
       data_platform:
-        description: "Part 1 - build SAP_SUPPLY_CHAIN (seed data, dynamic tables, semantic view, agent)"
+        description: "Part 1 - build SAP_SUPPLY_CHAIN_DF_V1 (seed data, dynamic tables, semantic view, agent)"
         type: boolean
         default: true
       native_app:
@@ -131,9 +131,9 @@ jobs:
           {
             echo "### SC360 demo → \`${{ inputs.environment }}\`"
             echo "**Part 1 - Data platform** (ran: \`${{ inputs.data_platform }}\`)"
-            echo "- Database \`SAP_SUPPLY_CHAIN\` (L0 seed, ANALYTICS dynamic tables, APP_REF, OPS_EXT)"
-            echo "- Semantic view \`SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360\`"
-            echo "- Cortex agent \`SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SC360_ANALYST_AGENT\`"
+            echo "- Database \`SAP_SUPPLY_CHAIN_DF_V1\` (L0 seed, ANALYTICS dynamic tables, APP_REF, OPS_EXT)"
+            echo "- Semantic view \`SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SUPPLY_CHAIN_360\`"
+            echo "- Cortex agent \`SAP_SUPPLY_CHAIN_DF_V1.ANALYTICS.SAP_SC360_ANALYST_AGENT\`"
             echo ""
             echo "**Part 2 - Native App** (ran: \`${{ inputs.native_app }}\`)"
             echo "- Image: \`${{ steps.provider.outputs.repository_url }}/supply_chain_360:latest\`"
