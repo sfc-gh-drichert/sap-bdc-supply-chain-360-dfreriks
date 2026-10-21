@@ -53,6 +53,104 @@ Full detail (diagram + per-table content): [`docs/ARCHITECTURE.md`](docs/ARCHITE
 
 Step-by-step runbook: [`docs/INSTALL.md`](docs/INSTALL.md).
 
+## Setting Up GitHub Actions — service user and authentication
+
+The deploy workflow logs in to Snowflake as a **service user with key-pair (JWT)
+authentication**: no passwords, no MFA prompts. Do this once per target account.
+
+### 1. Generate a key pair (locally)
+
+```bash
+openssl genrsa 2048 | openssl pkcs8 -topk8 -inform PEM -out sc360_ci.p8 -nocrypt
+openssl rsa -in sc360_ci.p8 -pubout -out sc360_ci.pub
+# public key as a single line, for the CREATE USER statement below
+grep -v "PUBLIC KEY" sc360_ci.pub | tr -d '\n'; echo
+```
+
+Keep `sc360_ci.p8` private. It goes into a GitHub secret and nowhere else, and
+`.gitignore` already excludes `*.p8`. If you want an encrypted key, drop
+`-nocrypt` and also set the `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` secret.
+
+### 2. Create the service user (in the target account, as ACCOUNTADMIN)
+
+```sql
+CREATE USER IF NOT EXISTS SC360_CI
+  TYPE = SERVICE                       -- no password / MFA; key-pair only
+  DEFAULT_ROLE = ACCOUNTADMIN
+  COMMENT = 'GitHub Actions deployer for the SC360 demo'
+  RSA_PUBLIC_KEY = '<single-line public key from step 1>';
+GRANT ROLE ACCOUNTADMIN TO USER SC360_CI;
+
+-- check: RSA_PUBLIC_KEY_FP must be populated
+DESC USER SC360_CI;
+```
+
+**Why ACCOUNTADMIN?** The workflow creates databases, a warehouse, an image
+repository and an application package. It also grants account-level privileges
+(`CREATE COMPUTE POOL`, `BIND SERVICE ENDPOINT`, `CREATE WAREHOUSE`,
+`SNOWFLAKE.CORTEX_USER`) to the app. To use a narrower role, create it, grant it
+those privileges plus `CREATE DATABASE`, `CREATE APPLICATION PACKAGE` and
+`CREATE APPLICATION` on the account, and set the `SNOWFLAKE_ROLE` variable (step 3).
+Only the ACCOUNTADMIN path has been designed and checked end to end.
+
+**Network policies:** if the account restricts client IPs, GitHub-hosted runners
+will be blocked. Either allow the runners (e.g. a network rule for GitHub Actions
+IP ranges attached to a user-level network policy on `SC360_CI`) or use a
+self-hosted runner with a fixed IP.
+
+### 3. Store the credentials as a GitHub Environment
+
+Repo → **Settings → Environments → New environment**. Use one environment per
+target account, e.g. `us-demo` or `eu-demo`; the name is what you type when you run
+the workflow.
+
+| Kind | Name | Value |
+|------|------|-------|
+| Secret | `SNOWFLAKE_ACCOUNT` | Account identifier `<orgname>-<accountname>` (from `SELECT CURRENT_ORGANIZATION_NAME() \|\| '-' \|\| CURRENT_ACCOUNT_NAME();`) |
+| Secret | `SNOWFLAKE_USER` | `SC360_CI` |
+| Secret | `SNOWFLAKE_PRIVATE_KEY` | Full contents of `sc360_ci.p8`, including the `BEGIN` / `END` lines |
+| Secret *(optional)* | `SNOWFLAKE_PRIVATE_KEY_PASSPHRASE` | Only for an encrypted key |
+| Variable *(optional)* | `SNOWFLAKE_ROLE` | Defaults to `ACCOUNTADMIN` |
+
+Or from the CLI. Piping the file keeps the key's line breaks intact:
+
+```bash
+R=sfc-gh-drichert/sap-bdc-supply-chain-360-dfreriks
+gh secret set SNOWFLAKE_ACCOUNT     -R $R --env us-demo --body "myorg-myaccount"
+gh secret set SNOWFLAKE_USER        -R $R --env us-demo --body "SC360_CI"
+gh secret set SNOWFLAKE_PRIVATE_KEY -R $R --env us-demo < sc360_ci.p8
+```
+
+Optional: add **required reviewers** on the environment so every deploy to that
+account waits for approval.
+
+### 4. Run it
+
+**Actions → Deploy SC360 demo (data platform + Native App) → Run workflow**, enter
+the environment name, and keep both parts ticked for the first deploy. The run
+starts with a *check credentials* step, so a missing secret fails fast.
+
+### Key rotation
+
+Snowflake allows two active keys per user, so you can rotate without downtime:
+
+```sql
+ALTER USER SC360_CI SET RSA_PUBLIC_KEY_2 = '<new public key>';
+-- update the SNOWFLAKE_PRIVATE_KEY secret with the new .p8, run the workflow once, then:
+ALTER USER SC360_CI UNSET RSA_PUBLIC_KEY;
+```
+
+### Troubleshooting authentication
+
+| Symptom | Likely cause |
+|---------|--------------|
+| `JWT token is invalid` | Public key on the user doesn't match the private key in the secret, or `SNOWFLAKE_ACCOUNT` is wrong (use `<orgname>-<accountname>`, not the URL) |
+| `Could not deserialize key data` | Key secret pasted without its `BEGIN`/`END` lines or line breaks. Set it with `gh secret set … < sc360_ci.p8` |
+| `IP … is not allowed to access Snowflake` | A network policy blocks GitHub runners (see step 2) |
+| Registry login step fails, but the earlier Python steps work | Usually the same as above, or SPCS is not available in the account/region |
+
+More detail: [`docs/GITHUB_ACTIONS.md`](docs/GITHUB_ACTIONS.md).
+
 ## The app
 
 A React dashboard covering **production, inventory, logistics, work centers,
