@@ -1,24 +1,44 @@
-# Deploy with GitHub Actions — any Snowflake account
+# Deploy with GitHub Actions — the whole demo, any Snowflake account
 
-`.github/workflows/deploy-native-app.yml` deploys the Supply Chain 360 Native App
-(React + Express on SPCS) into **any** Snowflake account. Each target account is a
-**GitHub Environment** holding that account's credentials; you pick the
-environment when you run the workflow.
+The workflow **Deploy SC360 demo (data platform + Native App)**
+(`.github/workflows/deploy-demo.yml`) deploys the complete demo into **any**
+Snowflake account. Each target account is a **GitHub Environment** holding that
+account's credentials; you pick the environment when you run the workflow.
 
-## What a run does
+## What a run builds
 
-| Step | Script | Result in the target account |
-|------|--------|------------------------------|
-| Provider objects | `ci_deploy.py provider` | `LOAD_WH`, image repo `SC360_APP_PROVIDER.IMAGES.REPO` |
-| Image | `docker buildx … --push` | `supply_chain_360:latest` (+ `:<sha>`) pushed to that repo |
-| Data *(input `data`)* | `ci_deploy.py data` | `SAP_SUPPLY_CHAIN` built from the synthetic seed (`tools/gen_l0_seed.py` → `sql/03` → `sql/02` → `tools/gen_ops_ext.py` → `sql/06`), then 18 tables bundled into `SUPPLY_CHAIN_360_PKG.SHARED_DATA` |
-| Release | `ci_deploy.py release` | First run: version `V2` registered. Later runs: a new patch on `V2`. Input `publish` also sets the DEFAULT release directive |
-| Install *(input `install`)* | `ci_deploy.py install` | `SUPPLY_CHAIN_360_APP` created or upgraded, privileges + `CORTEX_USER` granted, `version_init()` run, service waited on, URL printed in the job summary |
+### Part 1 — Data platform (input `data_platform`)
+
+`ci_deploy.py platform` builds database `SAP_SUPPLY_CHAIN`, in this order:
+
+| # | Source | Creates |
+|---|--------|---------|
+| 1 | `tools/gen_l0_seed.py` | L0 bronze: the 21 SAP BDC Standard Data Product tables (synthetic seed, see `sql/01_l0_sources.md`) |
+| 2 | `sql/03_l2_analytics_dynamic_tables.sql` | L2 gold: `ANALYTICS.DT_*` dynamic tables + `LINEAGE_COUNTS` |
+| 3 | `sql/02_appref_serving_views.sql` | `APP_REF` serving views |
+| 4 | `tools/gen_ops_ext.py` + `sql/06_ops_ext_dynamic_tables.sql` | `OPS_EXT` enrichment (orders, equipment, component cover, genealogy) + its dynamic tables |
+| 5 | `sql/04_semantic_view.sql` | Semantic view `ANALYTICS.SAP_SUPPLY_CHAIN_360` |
+| 6 | `sql/05_cortex_agent.sql` | Cortex agent `ANALYTICS.SAP_SC360_ANALYST_AGENT` (chat with it in Snowflake Intelligence) |
+
+Also creates warehouse `LOAD_WH`, which the dynamic tables use.
+
+### Part 2 — Native App (input `native_app`)
+
+| Step | Creates |
+|------|---------|
+| Image repository | `SC360_APP_PROVIDER.IMAGES.REPO` |
+| Build + push | React/Express container `supply_chain_360:latest` (+ `:<sha>`) |
+| Bundle | 18 tables copied from `SAP_SUPPLY_CHAIN` into `SUPPLY_CHAIN_360_PKG.SHARED_DATA` (the app is self-contained and has its own in-app semantic view) |
+| Version / patch | First run registers version `V2`; later runs add a patch. Input `publish` also sets the DEFAULT release directive |
+| Install | `SUPPLY_CHAIN_360_APP` created or upgraded, privileges + `CORTEX_USER` granted, service started, URL printed in the job summary |
+
+Part 2 bundles from `SAP_SUPPLY_CHAIN`, so on a fresh account run Part 1 first, or
+in the same run (the default).
 
 **Existing SAP BDC data is never overwritten.** If `SAP_SUPPLY_CHAIN` already
-exists and was *not* created by the seed (no `SC360_SEED` comment), the data step
-skips the build and bundles that data as-is. The L2 tables (`sql/03`, `sql/06`)
-must already exist in that case.
+exists and was *not* created by the seed (no `SC360_SEED` comment), Part 1 is
+skipped entirely, and Part 2 bundles that data as-is. Its L2 tables must already
+exist in that case (`docs/INSTALL.md`, section A).
 
 Seed values are synthetic and deterministic, so every account gets the same
 numbers. They are representative, not a copy of the original reference deployment.
@@ -71,19 +91,19 @@ before deploying to a given account.
 
 ## Running
 
-**Actions → Deploy Native App → Run workflow**, then set:
+**Actions → Deploy SC360 demo (data platform + Native App) → Run workflow**, then set:
 
 - `environment` — e.g. `us-demo`
-- `data` — leave on for the first deploy; turn off for app-only changes (faster)
-- `install` — create or upgrade `SUPPLY_CHAIN_360_APP` in the same account
+- `data_platform` — Part 1; leave on for the first deploy, turn off for app-only changes
+- `native_app` — Part 2; turn off to deploy only the database, semantic view and agent
 - `publish` — set the DEFAULT release directive (upgrades org-listing consumers
   automatically; leave off unless you mean to release)
 
 From the CLI:
 
 ```bash
-gh workflow run deploy-native-app.yml -f environment=us-demo
-gh workflow run deploy-native-app.yml -f environment=eu-demo -f data=false -f label="UI fix"
+gh workflow run deploy-demo.yml -f environment=us-demo
+gh workflow run deploy-demo.yml -f environment=eu-demo -f data_platform=false -f label="UI fix"
 ```
 
 To deploy to several accounts, run the workflow once per environment.
@@ -103,9 +123,10 @@ To deploy to several accounts, run the workflow once per environment.
 
 ```bash
 pip install -r requirements-ci.txt
-python scripts/ci_deploy.py provider --connection my_conn
+python scripts/ci_deploy.py platform --connection my_conn   # Part 1
+python scripts/ci_deploy.py provider --connection my_conn   # Part 2 from here
 scripts/build_and_push.sh my_conn <registry_host>
-python scripts/ci_deploy.py data    --connection my_conn
+python scripts/ci_deploy.py bundle  --connection my_conn
 python scripts/ci_deploy.py release --connection my_conn
 python scripts/ci_deploy.py install --connection my_conn
 ```

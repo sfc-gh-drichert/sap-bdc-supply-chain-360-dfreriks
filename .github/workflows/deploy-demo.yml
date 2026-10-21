@@ -1,11 +1,17 @@
-# Deploy the Supply Chain 360 Native App into any Snowflake account.
+# Deploy the complete SAP BDC Supply Chain 360 demo into any Snowflake account.
+#
+#   Part 1 - Data platform   database SAP_SUPPLY_CHAIN: seeded SAP L0 data, L2 dynamic
+#                            tables, APP_REF views, OPS_EXT enrichment, semantic view
+#                            SAP_SUPPLY_CHAIN_360 and Cortex agent SAP_SC360_ANALYST_AGENT
+#   Part 2 - Native App      React dashboard on SPCS: image, application package
+#                            SUPPLY_CHAIN_360_PKG (bundled data), app SUPPLY_CHAIN_360_APP
 #
 # One GitHub Environment per target account, each with:
 #   secrets: SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PRIVATE_KEY
 #            (optional) SNOWFLAKE_PRIVATE_KEY_PASSPHRASE
 #   vars:    (optional) SNOWFLAKE_ROLE  (default ACCOUNTADMIN)
-# See docs/GITHUB_ACTIONS.md for the one-time service-user setup.
-name: Deploy Native App
+# See docs/GITHUB_ACTIONS.md.
+name: Deploy SC360 demo (data platform + Native App)
 
 on:
   workflow_dispatch:
@@ -14,20 +20,20 @@ on:
         description: GitHub Environment holding the target account's credentials
         required: true
         type: string
-      data:
-        description: Rebuild + re-bundle the demo data (needed on first deploy)
+      data_platform:
+        description: "Part 1 - build SAP_SUPPLY_CHAIN (seed data, dynamic tables, semantic view, agent)"
         type: boolean
         default: true
-      install:
-        description: Create / upgrade SUPPLY_CHAIN_360_APP in the same account
+      native_app:
+        description: "Part 2 - build image, package and install the Native App"
         type: boolean
         default: true
       publish:
-        description: Set the DEFAULT release directive to the new patch (upgrades listing consumers)
+        description: "Part 2 - set the DEFAULT release directive (upgrades listing consumers)"
         type: boolean
         default: false
       label:
-        description: Patch label
+        description: Native App patch label
         type: string
         default: ""
 
@@ -37,9 +43,10 @@ concurrency:
 
 jobs:
   deploy:
+    name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
-    timeout-minutes: 60
+    timeout-minutes: 75
     env:
       SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
       SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
@@ -52,7 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check credentials
+      - name: "Setup - check credentials"
         run: |
           for v in SNOWFLAKE_ACCOUNT SNOWFLAKE_USER SNOWFLAKE_PRIVATE_KEY; do
             [ -n "${!v}" ] || { echo "::error::secret $v missing in environment '${{ inputs.environment }}'"; exit 1; }
@@ -64,28 +71,38 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-ci.txt
 
-      - name: Install tooling
+      - name: "Setup - install tooling"
         run: pip install -r requirements-ci.txt
 
-      - name: Write private key for Snowflake CLI
+      - name: "Setup - write private key for Snowflake CLI"
         run: |
           umask 077
           printf '%s\n' "$SNOWFLAKE_PRIVATE_KEY" > "$RUNNER_TEMP/rsa_key.p8"
           echo "SNOWFLAKE_PRIVATE_KEY_PATH=$RUNNER_TEMP/rsa_key.p8" >> "$GITHUB_ENV"
 
-      - name: Provider objects + image repository
+      # ---------------------------------------------------------------- Part 1
+      - name: "Part 1 - Data platform: seed data, dynamic tables, semantic view, Cortex agent"
+        if: inputs.data_platform
+        run: python scripts/ci_deploy.py platform
+
+      # ---------------------------------------------------------------- Part 2
+      - name: "Part 2 - Native App: image repository"
         id: provider
+        if: inputs.native_app
         run: python scripts/ci_deploy.py provider
 
-      - name: Log in to the Snowflake image registry
+      - name: "Part 2 - Native App: log in to image registry"
+        if: inputs.native_app
         run: |
           snow spcs image-registry login -x \
             --account "$SNOWFLAKE_ACCOUNT" --user "$SNOWFLAKE_USER" --role "$SNOWFLAKE_ROLE" \
             --authenticator SNOWFLAKE_JWT --private-key-file "$SNOWFLAKE_PRIVATE_KEY_PATH"
 
       - uses: docker/setup-buildx-action@v3
+        if: inputs.native_app
 
-      - name: Build + push container image
+      - name: "Part 2 - Native App: build + push React/Express container"
+        if: inputs.native_app
         env:
           REPO_URL: ${{ steps.provider.outputs.repository_url }}
         run: |
@@ -94,30 +111,36 @@ jobs:
             -t "$REPO_URL/supply_chain_360:${GITHUB_SHA::12}" \
             --push service/app
 
-      - name: Build + bundle demo data
-        if: inputs.data
-        run: python scripts/ci_deploy.py data
+      - name: "Part 2 - Native App: bundle data into application package"
+        if: inputs.native_app
+        run: python scripts/ci_deploy.py bundle
 
-      - name: Register version / add patch
+      - name: "Part 2 - Native App: register version / add patch"
         id: release
+        if: inputs.native_app
         run: python scripts/ci_deploy.py release ${{ inputs.publish && '--publish' || '' }}
 
-      - name: Install / upgrade application
+      - name: "Part 2 - Native App: install / upgrade SUPPLY_CHAIN_360_APP"
         id: install
-        if: inputs.install
+        if: inputs.native_app
         run: python scripts/ci_deploy.py install
 
       - name: Summary
         if: always()
         run: |
           {
-            echo "### Supply Chain 360 → \`${{ inputs.environment }}\`"
+            echo "### SC360 demo → \`${{ inputs.environment }}\`"
+            echo "**Part 1 - Data platform** (ran: \`${{ inputs.data_platform }}\`)"
+            echo "- Database \`SAP_SUPPLY_CHAIN\` (L0 seed, ANALYTICS dynamic tables, APP_REF, OPS_EXT)"
+            echo "- Semantic view \`SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SUPPLY_CHAIN_360\`"
+            echo "- Cortex agent \`SAP_SUPPLY_CHAIN.ANALYTICS.SAP_SC360_ANALYST_AGENT\`"
+            echo ""
+            echo "**Part 2 - Native App** (ran: \`${{ inputs.native_app }}\`)"
             echo "- Image: \`${{ steps.provider.outputs.repository_url }}/supply_chain_360:latest\`"
-            echo "- Version: \`${{ steps.release.outputs.version }}\` patch \`${{ steps.release.outputs.patch }}\`"
-            echo "- Published to DEFAULT channel: \`${{ inputs.publish }}\`"
+            echo "- Package \`SUPPLY_CHAIN_360_PKG\` version \`${{ steps.release.outputs.version }}\` patch \`${{ steps.release.outputs.patch }}\` (published: \`${{ inputs.publish }}\`)"
             echo "- App URL: ${{ steps.install.outputs.app_url || 'n/a' }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Remove key file
+      - name: "Cleanup - remove key file"
         if: always()
         run: rm -f "$RUNNER_TEMP/rsa_key.p8"

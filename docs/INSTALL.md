@@ -55,8 +55,8 @@ SELECT * FROM SEMANTIC_VIEW(
 
 ## B. Deploy the Native App
 
-> **Recommended:** deploy with GitHub Actions — works against any Snowflake
-> account with SPCS, no local Docker or SAP BDC mount needed. See
+> **Recommended:** deploy A *and* B with GitHub Actions — works against any
+> Snowflake account with SPCS, no local Docker or SAP BDC mount needed. See
 > [`GITHUB_ACTIONS.md`](GITHUB_ACTIONS.md). The manual steps below remain for
 > reference.
 

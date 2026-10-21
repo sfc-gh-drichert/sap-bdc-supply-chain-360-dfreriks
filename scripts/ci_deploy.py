@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-CI/CD deploy for the Supply Chain 360 Native App — works against any Snowflake
+CI/CD deploy for the whole Supply Chain 360 demo — works against any Snowflake
 account. Every step is idempotent, so the same workflow handles first installs
 and upgrades.
 
-Steps (run individually or `all`):
+Part 1 — data platform (database SAP_SUPPLY_CHAIN):
+  platform  seed L0 (synthetic SAP BDC products) -> L2 dynamic tables (sql/03)
+            -> APP_REF views (sql/02) -> OPS_EXT seed + DTs (sql/06)
+            -> semantic view (sql/04) -> Cortex agent (sql/05).
+            Skipped if a real (non-seed) SAP_SUPPLY_CHAIN already exists.
+
+Part 2 — Native App (React dashboard on SPCS):
   provider  LOAD_WH + provider image repository; prints the registry URL
-  data      build SAP_SUPPLY_CHAIN (seed L0 -> L2 dynamic tables) unless a real
-            SAP BDC source already exists, then bundle 18 tables into the
-            application package's SHARED_DATA schema
+  bundle    copy 18 tables from SAP_SUPPLY_CHAIN into the package SHARED_DATA
   release   stage app/ artifacts, then REGISTER/ADD VERSION (first run) or ADD
             PATCH; optionally publish on the DEFAULT release channel
   install   CREATE APPLICATION or UPGRADE it, grant privileges, run
@@ -102,22 +106,26 @@ def run_tool(script):
     subprocess.run(cmd, check=True, env=env)
 
 
-def step_data(con, cur):
-    cur.execute(f"USE WAREHOUSE {LOAD_WH}")
+def step_platform(con, cur):
     existing = rows(cur, f"SHOW DATABASES LIKE '{SOURCE_DB}'")
-    seeded = not existing or SEED_MARKER in (existing[0].get("comment") or "")
-    if seeded:
-        log(f"{SOURCE_DB}: building from synthetic seed")
-        run_tool("gen_l0_seed.py")
-        run_sql_file(con, "sql/03_l2_analytics_dynamic_tables.sql")
-        run_sql_file(con, "sql/02_appref_serving_views.sql")
-        run_tool("gen_ops_ext.py")
-        run_sql_file(con, "sql/06_ops_ext_dynamic_tables.sql")
-    else:
+    if existing and SEED_MARKER not in (existing[0].get("comment") or ""):
         # A real SAP BDC source (mounted products + L2 built per docs/INSTALL.md A).
-        # Never rebuild it from CI; just bundle what is there.
-        log(f"{SOURCE_DB}: existing (non-seed) source found — bundling as-is")
+        # Never rebuild it from CI.
+        log(f"{SOURCE_DB}: existing (non-seed) database found — data platform left untouched")
+        return
+    log(f"{SOURCE_DB}: building data platform from synthetic seed")
+    run_tool("gen_l0_seed.py")                                   # L0 bronze
+    run_sql_file(con, "sql/03_l2_analytics_dynamic_tables.sql")   # L2 gold
+    run_sql_file(con, "sql/02_appref_serving_views.sql")          # serving views
+    run_tool("gen_ops_ext.py")                                    # OPS_EXT enrichment
+    run_sql_file(con, "sql/06_ops_ext_dynamic_tables.sql")
+    run_sql_file(con, "sql/04_semantic_view.sql")                 # SAP_SUPPLY_CHAIN_360
+    run_sql_file(con, "sql/05_cortex_agent.sql")                  # SAP_SC360_ANALYST_AGENT
+    n = rows(cur, f"SELECT COUNT(*) AS n FROM {SOURCE_DB}.ANALYTICS.DT_MANUFACTURING_KPI")[0]["n"]
+    log(f"data platform ready: DT_MANUFACTURING_KPI={n} rows, semantic view + agent in {SOURCE_DB}.ANALYTICS")
 
+
+def step_bundle(cur):
     ensure_package(cur)
     for name, src in SOURCES.items():
         src = src.replace("SAP_SUPPLY_CHAIN.", f"{SOURCE_DB}.", 1)
@@ -234,7 +242,7 @@ def step_install(cur, patch):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=["provider", "data", "release", "install", "all"])
+    ap.add_argument("step", choices=["platform", "provider", "bundle", "release", "install", "all"])
     ap.add_argument("--connection", help="connections.toml name (default: SNOWFLAKE_* env vars)")
     ap.add_argument("--label", default=os.environ.get("SC360_LABEL", "CI deploy"))
     ap.add_argument("--publish", action="store_true",
@@ -249,10 +257,12 @@ def main():
                 f"AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = TRUE")
     cur.execute(f"USE WAREHOUSE {LOAD_WH}")
     patch = None
+    if a.step in ("platform", "all"):
+        step_platform(con, cur)
     if a.step in ("provider", "all"):
         step_provider(cur)
-    if a.step in ("data", "all"):
-        step_data(con, cur)
+    if a.step in ("bundle", "all"):
+        step_bundle(cur)
     if a.step in ("release", "all"):
         patch = step_release(cur, a.label, a.publish)
     if a.step in ("install", "all"):
