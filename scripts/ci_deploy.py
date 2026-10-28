@@ -36,6 +36,8 @@ import subprocess
 import sys
 import time
 
+import snowflake.connector.errors
+
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 from sf_conn import connect  # noqa: E402
@@ -200,10 +202,17 @@ def step_install(cur, patch):
         d = props(cur, f"DESCRIBE APPLICATION {APP}")
         if str(d.get("version", "")).upper() == "UNVERSIONED":
             raise SystemExit(f"{APP} is a dev-mode (stage) install; drop it or upgrade it manually.")
+        explicit = f"ALTER APPLICATION {APP} UPGRADE USING VERSION {VERSION} PATCH {patch}"
         if d.get("release_channel_name"):
-            cur.execute(f"ALTER APPLICATION {APP} UPGRADE")  # follows the channel's directive
+            try:
+                cur.execute(f"ALTER APPLICATION {APP} UPGRADE")  # follows the channel's directive
+            except snowflake.connector.errors.ProgrammingError as e:
+                # Apps created USING VERSION report a channel but reject a plain UPGRADE (093055).
+                if "093055" not in str(e):
+                    raise
+                cur.execute(explicit)
         else:
-            cur.execute(f"ALTER APPLICATION {APP} UPGRADE USING VERSION {VERSION} PATCH {patch}")
+            cur.execute(explicit)
         log(f"upgraded {APP}")
 
     for g in ["GRANT CREATE COMPUTE POOL ON ACCOUNT TO APPLICATION {a}",
