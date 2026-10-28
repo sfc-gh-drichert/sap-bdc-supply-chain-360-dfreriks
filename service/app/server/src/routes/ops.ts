@@ -12,7 +12,11 @@ const router = Router();
 const DB = process.env.SC_DB_PREFIX ?? "APP_DATA";
 // In the Native App the bundled plant master sits beside the DT_ views in APP_DATA.
 const PLANT_TABLE = process.env.SC_PLANT_TABLE ?? "APP_DATA.A_PLANT";
-const MODEL = process.env.CORTEX_MODEL ?? "claude-4-sonnet";
+// Model availability varies by account/region and names get retired, so try a list in order.
+// CORTEX_MODEL may be a single model or a comma-separated list.
+const MODELS = (process.env.CORTEX_MODEL ?? "claude-sonnet-4-5,claude-3-7-sonnet,llama3.3-70b,mistral-large2")
+  .split(",").map((m) => m.trim()).filter(Boolean);
+const MODEL_UNAVAILABLE = /unknown model|not available|unavailable|not supported|does not exist/i;
 
 // Plant filter by name (matches the sidebar). Bound, never interpolated.
 function plantFilter(req: Request, col = "PLANT_NAME"): { sql: string; binds: string[] } {
@@ -255,8 +259,17 @@ async function runAsk(topic: string, args: Record<string, string>, question: str
   const facts = await t.facts(args);
   const q = question?.trim() || `Analyse this ${t.title}: what stands out, why, and what should we do?`;
   const prompt = `${SYSTEM}\n\nTopic: ${t.title}\nContext: ${JSON.stringify(args)}\n\nFACTS (JSON):\n${JSON.stringify(facts).slice(0, 60000)}\n\nQuestion: ${q}`;
-  const rows = await runQuery(`SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS answer`, [MODEL, prompt]);
-  return String(rows[0]?.answer ?? "No answer returned.");
+  let lastErr: unknown;
+  for (const model of MODELS) {
+    try {
+      const rows = await runQuery(`SELECT SNOWFLAKE.CORTEX.COMPLETE(?, ?) AS answer`, [model, prompt]);
+      return String(rows[0]?.answer ?? "No answer returned.");
+    } catch (err) {
+      lastErr = err;
+      if (!MODEL_UNAVAILABLE.test(String(err))) throw err;
+    }
+  }
+  throw new Error(`No Cortex model available (tried ${MODELS.join(", ")}): ${String(lastErr)}`);
 }
 
 router.get("/api/ask-cortex/topics", (_req, res) => {
